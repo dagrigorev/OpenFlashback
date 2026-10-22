@@ -7,11 +7,14 @@
 - Conrad's sprite frames, with his palette read from `FB.EXE`.
 - Conrad's original animations and start positions; turning, walking, running, jumping,
   falling and climbing on the room collision grid.
+- Object script reader (`.obj`) and dump tool; Conrad's moves follow the script's animation
+  chains and controls (checked by a test against the original data).
 
 ## Next
 
 1. Measure the game speed in DOSBox (now 30 updates per second, estimated).
-2. Level scripts and objects (`.pge`, `.obj`, `.lev`): moves, items, doors, lifts, enemies.
+2. Decode the remaining `.obj` condition and action opcodes and run the scripts: moves, items,
+   doors, lifts, enemies (`.pge`, `.obj`, `.lev`).
 3. Enemy sprite banks (`junky`, `mercenai`, `replican`, `glue`).
 4. Text (`fb_txt.fnt`, `.tbn`), inventory icons (`global.icn`).
 5. Cutscenes (`.cmd` / `.pol` polygon animations).
@@ -20,8 +23,8 @@
 
 ## Known issues
 
-- Conrad's moves come from a hand-written state machine, not yet from the level scripts; no
-  crouching, rolling, drawing the gun, using objects or lifts.
+- Conrad's moves come from a hand-written state machine that follows the script's chains, not
+  from running the script; no rolling, drawing the gun, using objects or lifts.
 - Dropping from a ledge cuts from hanging to landing instead of falling.
 - The room foreground layer (pixels with bit 7) is drawn under Conrad instead of over him.
 - Conrad's palette is the fifth of seven palettes in `FB.EXE`; not yet checked against a

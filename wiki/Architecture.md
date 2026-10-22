@@ -11,7 +11,7 @@ flowchart LR
 
 | Crate | Path | Contents |
 | --- | --- | --- |
-| `of-engine` | `crates/engine` | `data` (case-insensitive data directory), `unpack` (bytekiller), `palette`, `screen` (bitmaps, planar pictures), `level` (rooms, connection table), `sprite` (character banks and anchors), `anim` (animation tables), `pge` (objects' starting state) |
+| `of-engine` | `crates/engine` | `data` (case-insensitive data directory), `unpack` (bytekiller), `palette`, `screen` (bitmaps, planar pictures), `level` (rooms, connection table), `sprite` (character banks and anchors), `anim` (animation tables), `pge` (objects' starting state), `obj` (object scripts) |
 | `of-game` | `crates/game` | `Game`: loads a level and composes the 256 x 224 indexed screen and its palette; `conrad` (move state machine over the original animations), `world` (room neighbours and collision grid) |
 | `openflashback` | `crates/openflashback` | `app` (winit window, softbuffer presentation scaled to 4:3, fixed-rate ticks, 30 per second), `tools` (PNG dumps) |
 

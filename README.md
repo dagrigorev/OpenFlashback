@@ -32,12 +32,15 @@ but there are no level scripts, enemies or items yet.
   level's 12-bit `levelN.pal` palettes), Delphine's "bytekiller" compression with checksum, the room
   connection table and collision grid (`levelN.ct`), character sprite banks (`perso.spr` /
   `.off`, 4-bit run-length frames with their anchor points), animation tables (`.ani`) and the
-  objects' starting state (`.pge`). Conrad's colours are read from your `FB.EXE`.
+  objects' starting state (`.pge`), and the object scripts (`.obj`: per-state transition lists).
+  Conrad's colours are read from your `FB.EXE`.
 - Each level starts where the original does (level 1: Conrad waking up in the jungle). Conrad
-  turns, walks, runs, jumps (standing and running), falls, climbs up onto ledges and down from
-  them, with the original animations; every move covers whole 16-pixel cells of the room grid.
+  turns, walks, runs, jumps (standing and running), crouches, falls, climbs up onto ledges and
+  down from them, with the original animations and the animation chains of the original script;
+  every move covers whole 16-pixel cells of the room grid.
 
-Not yet: the level scripts (`.obj`) that drive the original's moves and objects, enemies, items,
+Not yet: running the object scripts themselves (most of their condition and action opcodes are
+still unknown), enemies, items,
 shooting, cutscenes (`.cmd` / `.pol`), text, sound and music. The game speed is an estimate
 (30 updates per second) until it is measured against the original.
 
@@ -63,7 +66,8 @@ Command line: `--windowed`, `--data <dir>`, `--level N` (1-5, skips the title), 
 | Run | Shift + Left / Right |
 | Jump forward (running jump when running) | Up + Left / Right |
 | Jump up, or climb onto the ledge above | Up (W) |
-| Climb down from a ledge edge | Down (S) |
+| Crouch (while held) | Down (S) |
+| Climb down from a ledge edge | Shift + Down |
 | Jump to level 1-5 | 1 - 5 |
 | Previous / next room | `[` / `]` |
 | Fullscreen | F11 |
@@ -81,7 +85,8 @@ Crates: `of-engine` (data formats), `of-game` (game state), `openflashback` (win
 
 Developer tools (`openflashback <tool> ...`): `screen` (title/instruction picture to PNG), `rooms`
 (contact sheet of a level), `shot` (one room with Conrad), `sprites` (sprite bank sheet), `ct`
-(room connections), `film` (play scripted input and save a contact sheet of frames).
+(room connections), `film` (play scripted input and save a contact sheet of frames), `obj` (print
+an object's script transitions).
 
 ## Releases and CI
 

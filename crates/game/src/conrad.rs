@@ -12,7 +12,12 @@ use std::collections::VecDeque;
 /// Animation numbers of Conrad's moves in `levelN.ani`.
 pub mod anims {
     pub const TURN: u16 = 0;
+    /// Finishes a turn, facing the other way.
+    pub const TURN_END: u16 = 183;
     pub const STAND: u16 = 1;
+    pub const CROUCH_DOWN: u16 = 64;
+    pub const CROUCH_UP: u16 = 65;
+    pub const CROUCHED: u16 = 66;
     /// The two halves of a walking step cycle, each moving one 16-pixel cell.
     pub const WALK: [u16; 2] = [3, 2];
     pub const JUMP_UP: u16 = 4;
@@ -23,6 +28,8 @@ pub mod anims {
     pub const RUN_STOP: u16 = 10;
     pub const JUMP_STANDING: u16 = 13;
     pub const CLIMB_DOWN: u16 = 15;
+    /// Lets go of the ledge after [`CLIMB_DOWN`] and lands on the floor below.
+    pub const CLIMB_DOWN_LAND: u16 = 91;
     pub const PULL_UP: u16 = 16;
     pub const JUMP_RUNNING: u16 = 21;
     pub const JUMP_FLY: u16 = 22;
@@ -67,6 +74,7 @@ enum Step {
 enum Motion {
     Idle,
     Running,
+    Crouched,
     Falling { vy: i32 },
 }
 
@@ -86,7 +94,8 @@ pub struct Conrad {
     motion: Motion,
     walk_phase: usize,
     run_phase: usize,
-    /// Up and Down presses seen since the last decision, with the direction held at the time, so
+    /// Up and Down presses seen since the last decision, with the direction and modifier held at
+    /// the time, so
     /// a quick tap during an animation counts.
     latch: Input,
 }
@@ -170,6 +179,7 @@ impl Conrad {
             self.latch.down |= input.down;
             self.latch.left |= input.left;
             self.latch.right |= input.right;
+            self.latch.run |= input.run;
         }
         if let Motion::Falling { vy } = self.motion {
             self.fall(vy, anims, world);
@@ -204,7 +214,7 @@ impl Conrad {
             down: input.down || self.latch.down,
             left: input.left || self.latch.left,
             right: input.right || self.latch.right,
-            run: input.run,
+            run: input.run || self.latch.run,
         };
         self.latch = Input::default();
         self.decide(latched, anims, world);
@@ -244,18 +254,32 @@ impl Conrad {
                 plan.push(Step::Anim(anims::JUMP_UP_LAND));
             }
             self.motion = Motion::Idle;
-        } else if input.down && !world.floor(self.room, col + dir, f) && world.floor(self.room, col + dir, f + 1) {
+        } else if self.motion == Motion::Crouched {
+            if input.down {
+                plan.push(Step::Anim(anims::CROUCHED));
+            } else {
+                plan.push(Step::Anim(anims::CROUCH_UP));
+                self.motion = Motion::Idle;
+            }
+        } else if input.down
+            && input.run
+            && !world.floor(self.room, col + dir, f)
+            && world.floor(self.room, col + dir, f + 1)
+        {
             plan.extend([
                 Step::Anim(anims::CLIMB_DOWN),
                 Step::ToFloor { floors: 1, cells: 1 },
-                Step::Anim(anims::JUMP_UP_LAND),
+                Step::Anim(anims::CLIMB_DOWN_LAND),
             ]);
             self.motion = Motion::Idle;
+        } else if input.down && !running {
+            plan.extend([Step::Anim(anims::CROUCH_DOWN), Step::Anim(anims::CROUCHED)]);
+            self.motion = Motion::Crouched;
         } else if held_back {
             if running {
                 plan.push(Step::Anim(anims::RUN_STOP));
             }
-            plan.extend([Step::Anim(anims::TURN), Step::Turn]);
+            plan.extend([Step::Anim(anims::TURN), Step::Turn, Step::Anim(anims::TURN_END)]);
             self.motion = Motion::Idle;
         } else if held_forward && !world.wall(self.room, col + dir, f) {
             if input.run && running {
@@ -263,7 +287,8 @@ impl Conrad {
                 self.run_phase = (self.run_phase + 1) % anims::RUN.len();
             } else if input.run {
                 plan.extend([Step::Anim(anims::RUN_START), Step::Run]);
-                self.run_phase = 0;
+                // The script continues a run start with the last part of the cycle.
+                self.run_phase = anims::RUN.len() - 1;
             } else {
                 if running {
                     plan.push(Step::Anim(anims::RUN_STOP));

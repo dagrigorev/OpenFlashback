@@ -5,6 +5,7 @@
 pub mod anim;
 pub mod data;
 pub mod level;
+pub mod obj;
 pub mod palette;
 pub mod pge;
 pub mod screen;

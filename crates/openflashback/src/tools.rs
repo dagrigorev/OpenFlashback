@@ -1,6 +1,7 @@
 //! Developer tools: render the original data to PNG files for inspection and comparison.
 
-use of_engine::level::{ConnectionTable, Dir, LevelMap, LEVEL_FILES};
+use of_engine::level::{ConnectionTable, Dir, LevelMap, LEVEL_FILES, SCRIPT_FILES};
+use of_engine::obj::{input_condition, ObjectScripts};
 use of_engine::palette::LevelPalettes;
 use of_engine::screen::{decode_planar_screen, Bitmap};
 use of_engine::sprite::SpriteBank;
@@ -16,9 +17,10 @@ pub const HELP: &str = "  screen DATA NAME OUT.png        full-screen picture (m
      ct DATA LEVEL                   print the room connections of a level\n  \
      film DATA LEVEL INPUT EVERY OUT.png\n                                  \
      play scripted input, keep every EVERY-th tick in a contact sheet. INPUT is\n                                  \
-     space-separated KEYS*TICKS, KEYS from l r u d s (run) or n (none): \"r*40 ru*1 n*30\"";
+     space-separated KEYS*TICKS, KEYS from l r u d s (run) or n (none): \"r*40 ru*1 n*30\"
+       obj DATA LEVEL NODE [STATE]     print the script transitions of an object node (Conrad: 1)";
 
-const TOOLS: [&str; 6] = ["screen", "rooms", "shot", "sprites", "ct", "film"];
+const TOOLS: [&str; 7] = ["screen", "rooms", "shot", "sprites", "ct", "film", "obj"];
 
 /// Parses `film` input such as `r*40 ru*1 n*30` into one [`Input`] per tick.
 fn parse_script(script: &str) -> Result<Vec<Input>, String> {
@@ -173,6 +175,44 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 }
             }
             write_rgb_png(arg(args, 5, "OUT")?, cols * SCREEN_W, rows * SCREEN_H, &sheet)
+        }
+        "obj" => {
+            let script = SCRIPT_FILES[level_arg(args, 2)?];
+            let node: usize = arg(args, 3, "NODE")?.parse().map_err(|_| "NODE must be a number")?;
+            let state: Option<u16> = args.get(4).and_then(|s| s.parse().ok());
+            let scripts = ObjectScripts::parse(&read(&format!("{script}.obj"))?);
+            let list = scripts.node(node).ok_or(format!("{script}.obj has no node {node}"))?;
+            println!("{script}.obj node {node}: {} transitions", list.len());
+            for (i, t) in list.iter().enumerate() {
+                if state.is_some_and(|s| s != t.state) {
+                    continue;
+                }
+                let cond = |op: u8| match input_condition(op) {
+                    Some(c) => {
+                        let dir = [(c.up, "up"), (c.down, "down"), (c.forward, "forward"), (c.back, "back")]
+                            .iter()
+                            .find(|d| d.0)
+                            .map_or("", |d| d.1);
+                        format!("{dir}{}", if c.modifier { "+mod" } else { "" })
+                    }
+                    None if op == 0 => "-".to_string(),
+                    None => format!("op{op:#04x}"),
+                };
+                println!(
+                    "#{i:4} {:3} -> {:3} [next #{:4}]  if {:>10} {:>10}  flags {:#04x}  do {:>6}  args {:?}  move ({}, {})",
+                    t.state,
+                    t.next_state,
+                    t.next_record,
+                    cond(t.cond1),
+                    cond(t.cond2),
+                    t.flags,
+                    if t.action == 0 { "-".to_string() } else { format!("{:#04x}", t.action) },
+                    t.args,
+                    t.dx,
+                    t.dy
+                );
+            }
+            Ok(())
         }
         other => Err(format!("unknown tool {other}")),
     }

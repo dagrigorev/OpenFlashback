@@ -66,7 +66,7 @@ fn level1_gap_is_fallen_through_or_jumped_over() {
     let mut g = Game::new(&data, 0).unwrap();
     run(&mut g, NONE, 30);
     run(&mut g, RIGHT, 10);
-    run(&mut g, Input { run: true, ..RIGHT }, 10);
+    run(&mut g, Input { run: true, ..RIGHT }, 18);
     run(
         &mut g,
         Input {
@@ -94,4 +94,44 @@ fn level1_climbs_up_to_a_ledge_and_back_down() {
     run(&mut g, Input { up: true, ..NONE }, 1);
     run(&mut g, NONE, 80);
     assert_eq!(g.conrad.y, FLOOR_TOP, "pulled up onto the top floor");
+}
+
+/// Every animation chain Conrad's controller uses must exist in the original script, with the
+/// controls it reacts to.
+#[test]
+fn controller_moves_follow_conrads_script() {
+    use of_engine::obj::{input_condition, ObjectScripts};
+    use of_engine::pge::parse_pge;
+    let Some(data) = data() else { return };
+    let scripts = ObjectScripts::parse(&data.read("level1.obj").unwrap());
+    let node = parse_pge(&data.read("level1.pge").unwrap())[0].obj_node as usize;
+    // (from, to, input opcode or 0 for any).
+    let chains: [(u16, u16, u8); 14] = [
+        (anims::STAND, anims::TURN, 2),
+        (anims::TURN, anims::TURN_END, 0),
+        (anims::TURN_END, anims::STAND, 0),
+        (anims::STAND, anims::JUMP_UP, 1),
+        (anims::JUMP_UP, anims::PULL_UP, 1),
+        (anims::JUMP_UP, anims::JUMP_UP_LAND, 0),
+        (anims::STAND, anims::RUN_START, 8),
+        (anims::RUN_START, anims::RUN[3], 0),
+        (anims::WALK[0], anims::WALK[1], 4),
+        (anims::WALK[1], anims::WALK[0], 4),
+        (anims::STAND, anims::CROUCH_DOWN, 3),
+        (anims::CROUCH_DOWN, anims::CROUCHED, 0),
+        (anims::STAND, anims::CLIMB_DOWN, 7),
+        (anims::CLIMB_DOWN, anims::CLIMB_DOWN_LAND, 0),
+    ];
+    for (from, to, input) in chains {
+        let found = scripts
+            .from_state(node, from)
+            .iter()
+            .any(|t| t.next_state == to && (input == 0 || (t.cond1 == input && input_condition(input).is_some())));
+        assert!(found, "script has no {from} -> {to} on input {input}");
+    }
+    // Pulling up onto a ledge moves exactly one floor up.
+    let pull = scripts.from_state(node, anims::JUMP_UP);
+    assert!(pull
+        .iter()
+        .any(|t| t.next_state == anims::PULL_UP && t.dy as i32 == -FLOOR_STEP));
 }

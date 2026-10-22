@@ -68,7 +68,36 @@ byte 3.
 Seven 16-colour palettes of little-endian `0RGB` words, each beginning with black; the fifth
 is Conrad's normal colours. OpenFlashback finds the table by that shape.
 
+## Object scripts: `levelN.obj` (levels 4 and 5: `level4_1.obj`, ...)
+
+A `u16` count of node slots and a `u32` offset per slot, counted from byte 2; several slots can
+share one node (Conrad's `.pge` record names node 1, which shares node 0's script). A node is a
+`u16` record count and 18-byte records, each a transition between states (a state is an
+animation number):
+
+| Bytes | Field |
+| --- | --- |
+| 0-1 | state the transition leaves from |
+| 2, 3 | signed `dx`, `dy` moved when it is taken (`dy` -72 = one floor up) |
+| 4-5 | next state |
+| 6 | condition opcode 2 |
+| 7 | condition opcode 1 |
+| 8 | flags (0x01 flips the facing after a turn) |
+| 9 | action opcode |
+| 10-11 | index of the next state's first record |
+| 12-17 | three `i16` arguments |
+
+When an animation ends, the records of its state are tried in order and the first whose
+conditions hold is taken; the last record of a state usually has no condition. Condition
+opcodes 1 to 8 test the controls relative to the facing: up, back, down, forward, then the same
+with the modifier (Shift). Conrad's script confirms: stand + back turns (0, then 183), stand +
+forward + Shift starts running (8, then 18), stand + up jumps (4, then 16 pulling up one floor
+when a ledge test holds, else 5), stand + down crouches (64, 66 while held, 65), stand + down +
+Shift climbs down (15, then 91 one floor lower), walking alternates 3 and 2 on forward. The
+other condition opcodes (about 60, many with an expected value in the arguments, apparently grid
+and object tests) and the action opcodes are not decoded yet.
+
 ## Not decoded yet
 
-`.bnq`, `.obj`, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*`, `.cmd` / `.pol`
+`.bnq`, the `.obj` condition and action opcodes beyond the controls, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*`, `.cmd` / `.pol`
 cutscenes, `.prf` / `.mid` / `.ins` audio, `fb_txt.fnt`.
