@@ -5,7 +5,7 @@ use of_engine::palette::LevelPalettes;
 use of_engine::screen::{decode_planar_screen, Bitmap};
 use of_engine::sprite::SpriteBank;
 use of_engine::{DataDir, Palette, Rgb, SCREEN_H, SCREEN_W};
-use of_game::Game;
+use of_game::{Game, Input};
 use std::fs::File;
 use std::io::BufWriter;
 
@@ -13,9 +13,35 @@ pub const HELP: &str = "  screen DATA NAME OUT.png        full-screen picture (m
      rooms DATA LEVEL OUT.png        contact sheet of every room of level 1-5\n  \
      shot DATA LEVEL ROOM OUT.png    one room with Conrad, as the game draws it\n  \
      sprites DATA BANK OUT.png       sheet of a sprite bank (perso, junky, mercenai, replican, glue)\n  \
-     ct DATA LEVEL                   print the room connections of a level";
+     ct DATA LEVEL                   print the room connections of a level\n  \
+     film DATA LEVEL INPUT EVERY OUT.png\n                                  \
+     play scripted input, keep every EVERY-th tick in a contact sheet. INPUT is\n                                  \
+     space-separated KEYS*TICKS, KEYS from l r u d s (run) or n (none): \"r*40 ru*1 n*30\"";
 
-const TOOLS: [&str; 5] = ["screen", "rooms", "shot", "sprites", "ct"];
+const TOOLS: [&str; 6] = ["screen", "rooms", "shot", "sprites", "ct", "film"];
+
+/// Parses `film` input such as `r*40 ru*1 n*30` into one [`Input`] per tick.
+fn parse_script(script: &str) -> Result<Vec<Input>, String> {
+    let mut ticks = Vec::new();
+    for tok in script.split_whitespace() {
+        let (keys, n) = tok.split_once('*').unwrap_or((tok, "1"));
+        let n: usize = n.parse().map_err(|_| format!("bad tick count in {tok}"))?;
+        let mut i = Input::default();
+        for k in keys.chars() {
+            match k {
+                'l' => i.left = true,
+                'r' => i.right = true,
+                'u' => i.up = true,
+                'd' => i.down = true,
+                's' => i.run = true,
+                'n' => {}
+                _ => return Err(format!("unknown key {k} in {tok}")),
+            }
+        }
+        ticks.extend(std::iter::repeat_n(i, n));
+    }
+    Ok(ticks)
+}
 
 pub fn is_tool(name: &str) -> bool {
     TOOLS.contains(&name)
@@ -88,7 +114,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
             for (k, &id) in ids.iter().enumerate() {
                 if let Some(f) = spr.frame(id) {
                     let (x, y) = ((k % cols) * cell_w, (k / cols) * cell_h);
-                    sheet.blit(&f, x as i32, y as i32, 0, false);
+                    sheet.blit(&f.bitmap, x as i32, y as i32, 0, false);
                 }
             }
             let grey: Vec<Rgb> = (0..256)
@@ -112,6 +138,41 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 );
             }
             Ok(())
+        }
+        "film" => {
+            let level = level_arg(args, 2)?;
+            let ticks = parse_script(arg(args, 3, "INPUT")?)?;
+            let every: usize = arg(args, 4, "EVERY")?.parse().map_err(|_| "EVERY must be a number")?;
+            let every = every.max(1);
+            let mut game = Game::new(&data, level).map_err(|e| e.to_string())?;
+            let shots = ticks.len() / every + 1;
+            let cols = 6;
+            let rows = shots.div_ceil(cols);
+            let mut sheet = vec![Rgb::default(); cols * SCREEN_W * rows * SCREEN_H];
+            let mut screen = Bitmap::screen();
+            let mut pal = Palette::default();
+            for k in 0..=ticks.len() {
+                if k % every == 0 {
+                    game.render(&mut screen, &mut pal);
+                    let n = k / every;
+                    let (ox, oy) = ((n % cols) * SCREEN_W, (n / cols) * SCREEN_H);
+                    for (i, &c) in screen.pixels.iter().enumerate() {
+                        sheet[(oy + i / SCREEN_W) * cols * SCREEN_W + ox + i % SCREEN_W] = pal.0[c as usize];
+                    }
+                    let c = &game.conrad;
+                    println!(
+                        "tick {k:4}: room {:2} x {:4} y {:4} anim {:3}",
+                        c.room,
+                        c.x,
+                        c.y,
+                        c.anim()
+                    );
+                }
+                if let Some(&i) = ticks.get(k) {
+                    game.tick(i);
+                }
+            }
+            write_rgb_png(arg(args, 5, "OUT")?, cols * SCREEN_W, rows * SCREEN_H, &sheet)
         }
         other => Err(format!("unknown tool {other}")),
     }

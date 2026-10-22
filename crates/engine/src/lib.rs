@@ -2,9 +2,11 @@
 //!
 //! Nothing here contains game content: every reader works on the files of the user's own copy.
 
+pub mod anim;
 pub mod data;
 pub mod level;
 pub mod palette;
+pub mod pge;
 pub mod screen;
 pub mod sprite;
 pub mod unpack;

@@ -11,7 +11,8 @@ project of [OpenBlood](https://github.com/dagrigorev/OpenBlood), built the same 
 > Software International.
 
 **Status: early.** The original pictures, level rooms, room connections and Conrad's sprites are
-read and drawn; Conrad can walk between rooms. There is no game logic yet. See
+read and drawn; Conrad walks, runs, jumps, falls and climbs with his original animations. There
+are no level scripts, enemies or items yet. See
 [Roadmap and Known Issues](Roadmap-and-Known-Issues).
 
 ## Start here

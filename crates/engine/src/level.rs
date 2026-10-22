@@ -10,6 +10,10 @@ pub const ROOMS: usize = 64;
 /// The base names of the five levels' background and palette files.
 pub const LEVEL_FILES: [&str; 5] = ["level1", "level2", "level3", "level4", "level5"];
 
+/// The base names of the files holding each level's first part of animations and objects
+/// (`.ani`, `.pge`, `.obj`); levels 4 and 5 come in two parts.
+pub const SCRIPT_FILES: [&str; 5] = ["level1", "level2", "level3", "level4_1", "level5_1"];
+
 /// One room background.
 #[derive(Debug, Clone)]
 pub struct Room {

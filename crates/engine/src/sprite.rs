@@ -39,11 +39,14 @@ impl SpriteBank {
 
     /// Decodes frame `id`.
     ///
-    /// Header bytes 2 and 3 are width and height. When byte 2 has bit `0x40` set the pixels are
-    /// stored column by column instead, and the two sizes swap places.
-    pub fn frame(&self, id: u16) -> Option<Bitmap> {
+    /// Header bytes 0 and 1 are the anchor: the character's position lies that many pixels right
+    /// of and below the top-left corner of the (left-facing) picture. Bytes 2 and 3 are width and
+    /// height. When byte 2 has bit `0x40` set the pixels are stored column by column instead, and
+    /// the two sizes swap places.
+    pub fn frame(&self, id: u16) -> Option<Sprite> {
         let p = *self.offsets.get(&id)?;
         let h = self.data.get(p..p + 6)?;
+        let (ax, ay) = (h[0] as i8, h[1] as i8);
         let (a, b) = (h[2], h[3]);
         let columns = a & 0x40 != 0;
         let (w, h, count) = if columns {
@@ -62,7 +65,34 @@ impl SpriteBank {
             let (x, y) = if columns { (i / h, i % h) } else { (i % w, i / w) };
             bmp.pixels[y * w + x] = c;
         }
-        Some(bmp)
+        Some(Sprite {
+            bitmap: bmp,
+            anchor_x: ax,
+            anchor_y: ay,
+        })
+    }
+}
+
+/// A decoded character frame.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Sprite {
+    pub bitmap: Bitmap,
+    /// Offset of the character's position from the picture's left edge (left-facing).
+    pub anchor_x: i8,
+    /// Offset of the character's position (its feet) from the picture's top edge.
+    pub anchor_y: i8,
+}
+
+impl Sprite {
+    /// Top-left corner of the picture for a character at (`x`, `y`), mirrored or not.
+    pub fn origin(&self, x: i32, y: i32, mirror: bool) -> (i32, i32) {
+        let ax = self.anchor_x as i32;
+        let left = if mirror {
+            x + ax + 1 - self.bitmap.w as i32
+        } else {
+            x - ax
+        };
+        (left, y - self.anchor_y as i32)
     }
 }
 
@@ -111,7 +141,8 @@ mod tests {
         let mut spr = vec![0u8; 12];
         spr.extend_from_slice(&[0, 0, 0x43, 2, 0, 3, 0x12, 0x34, 0x56]);
         let off = [0, 0, 0, 0, 0, 0, 0xff, 0xff];
-        let f = SpriteBank::parse(spr, &off).frame(0).unwrap();
+        let s = SpriteBank::parse(spr, &off).frame(0).unwrap();
+        let f = &s.bitmap;
         assert_eq!((f.w, f.h), (2, 3));
         assert_eq!(f.pixels, vec![1, 4, 2, 5, 3, 6]);
     }

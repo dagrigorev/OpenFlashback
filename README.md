@@ -24,18 +24,22 @@ Sister project of [OpenBlood](https://github.com/dagrigorev/OpenBlood), built th
 
 ## What works
 
-Early days: the original data is read and drawn, but there is no game logic yet.
+Early days: the original data is read and drawn, and Conrad moves with his original animations,
+but there are no level scripts, enemies or items yet.
 
 - Clean-room readers for: the title and instruction screens (`menuN.map` / `.pal`, planar
   256 x 224), level backgrounds (`levelN.map`, 64 rooms of four run-length packed bands, with the
   level's 12-bit `levelN.pal` palettes), Delphine's "bytekiller" compression with checksum, the room
-  connection table (`levelN.ct`), and character sprite banks (`perso.spr` / `.off`, 4-bit
-  run-length frames, row- or column-ordered). Conrad's colours are read from your `FB.EXE`.
-- A window showing the title screen, then any level: walk Conrad left and right through
-  connected rooms, change floors and rooms up and down.
+  connection table and collision grid (`levelN.ct`), character sprite banks (`perso.spr` /
+  `.off`, 4-bit run-length frames with their anchor points), animation tables (`.ani`) and the
+  objects' starting state (`.pge`). Conrad's colours are read from your `FB.EXE`.
+- Each level starts where the original does (level 1: Conrad waking up in the jungle). Conrad
+  turns, walks, runs, jumps (standing and running), falls, climbs up onto ledges and down from
+  them, with the original animations; every move covers whole 16-pixel cells of the room grid.
 
-Not yet: the level scripts (`.pge`, `.obj`), Conrad's real animations (`.ani`, `.bnq`),
-collisions, enemies, items, cutscenes (`.cmd` / `.pol`), text, sound and music.
+Not yet: the level scripts (`.obj`) that drive the original's moves and objects, enemies, items,
+shooting, cutscenes (`.cmd` / `.pol`), text, sound and music. The game speed is an estimate
+(30 updates per second) until it is measured against the original.
 
 | | |
 | --- | --- |
@@ -55,8 +59,11 @@ Command line: `--windowed`, `--data <dir>`, `--level N` (1-5, skips the title), 
 | Action | Keys |
 | --- | --- |
 | Start (title screen) | Enter / Space |
-| Walk | Left / Right (A / D) |
-| Floor up / down | Up / Down (W / S) |
+| Walk (turn first when facing away) | Left / Right (A / D) |
+| Run | Shift + Left / Right |
+| Jump forward (running jump when running) | Up + Left / Right |
+| Jump up, or climb onto the ledge above | Up (W) |
+| Climb down from a ledge edge | Down (S) |
 | Jump to level 1-5 | 1 - 5 |
 | Previous / next room | `[` / `]` |
 | Fullscreen | F11 |
@@ -67,13 +74,14 @@ Command line: `--windowed`, `--data <dir>`, `--level N` (1-5, skips the title), 
 ```
 cargo build --release
 cargo test
+OPENFLASHBACK_DATA=path/to/flashback cargo test --release   # + tests against your original files
 ```
 
 Crates: `of-engine` (data formats), `of-game` (game state), `openflashback` (window, input, tools).
 
 Developer tools (`openflashback <tool> ...`): `screen` (title/instruction picture to PNG), `rooms`
 (contact sheet of a level), `shot` (one room with Conrad), `sprites` (sprite bank sheet), `ct`
-(room connections).
+(room connections), `film` (play scripted input and save a contact sheet of frames).
 
 ## Releases and CI
 

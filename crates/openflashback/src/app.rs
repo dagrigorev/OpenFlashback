@@ -86,6 +86,7 @@ impl App {
             right: k(KeyCode::ArrowRight, KeyCode::KeyD),
             up: k(KeyCode::ArrowUp, KeyCode::KeyW),
             down: k(KeyCode::ArrowDown, KeyCode::KeyS),
+            run: k(KeyCode::ShiftLeft, KeyCode::ShiftRight),
         }
     }
 
@@ -104,7 +105,7 @@ impl App {
             KeyCode::BracketLeft | KeyCode::BracketRight => {
                 if let Mode::Play(g) = &mut self.mode {
                     let rooms = g.level.map.rooms();
-                    if let Some(i) = rooms.iter().position(|&r| r == g.room) {
+                    if let Some(i) = rooms.iter().position(|&r| r == g.room()) {
                         let n = rooms.len();
                         let j = if code == KeyCode::BracketLeft {
                             (i + n - 1) % n
@@ -152,7 +153,11 @@ impl App {
             Mode::Play(g) => {
                 g.render(&mut self.screen, &mut self.palette);
                 if let Some(w) = &self.window {
-                    w.set_title(&format!("OpenFlashback - level {} room {}", g.level.index + 1, g.room));
+                    w.set_title(&format!(
+                        "OpenFlashback - level {} room {}",
+                        g.level.index + 1,
+                        g.room()
+                    ));
                 }
             }
         }

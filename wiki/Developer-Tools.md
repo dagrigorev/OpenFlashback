@@ -9,5 +9,13 @@
 | `shot DATA LEVEL ROOM OUT.png` | one room with Conrad, as the game draws it |
 | `sprites DATA BANK OUT.png` | every frame of a sprite bank (`perso`, `junky`, ...) in grey |
 | `ct DATA LEVEL` | prints each room's neighbours |
+| `film DATA LEVEL INPUT EVERY OUT.png` | plays scripted input and keeps every EVERY-th tick in a contact sheet, printing Conrad's room, position and animation |
+
+`film` input is space-separated `KEYS*TICKS` with keys `l r u d s` (s = run) or `n` (none). A
+running jump over the first gap of level 1:
+
+```
+openflashback film DATA 1 "n*30 r*10 rs*10 rsu*1 n*40" 4 jump.png
+```
 
 Screenshots for the README and wiki: `openflashback shot DATA 1 27 screenshots/level1.png`.
