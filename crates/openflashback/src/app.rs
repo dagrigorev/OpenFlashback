@@ -1,6 +1,7 @@
 //! The game window: startup cutscenes, title screen, play, and scaling the 256 x 224 screen to
 //! the window.
 
+use crate::audio::Audio;
 use crate::movie::{Movie, NEW_GAME, STARTUP};
 use crate::Options;
 use of_engine::screen::{decode_planar_screen, Bitmap};
@@ -38,6 +39,7 @@ struct App {
     last: Instant,
     accum: Duration,
     error: Option<String>,
+    audio: Option<Audio>,
 }
 
 /// Opens the window and runs until it is closed.
@@ -54,8 +56,15 @@ pub fn run(opts: Options) -> Result<(), String> {
         window: None,
         surface: None,
         error: None,
+        audio: None,
         opts,
     };
+    if app.opts.sound {
+        match Audio::new() {
+            Ok(a) => app.audio = Some(a),
+            Err(e) => eprintln!("no sound: {e}"),
+        }
+    }
     if let Some(level) = app.opts.level {
         app.start(level);
     }
@@ -84,6 +93,9 @@ impl App {
     }
 
     fn after_cutscene(&mut self, next: Option<usize>) {
+        if let Some(a) = &self.audio {
+            a.play_music(None);
+        }
         match next {
             Some(level) => self.start(level),
             None => self.mode = Mode::Title,
@@ -157,6 +169,13 @@ impl App {
         self.accum += dt;
         self.last = now;
         if let Mode::Cutscene(m, next) = &mut self.mode {
+            if let (Some(scene), Some(audio)) = (m.take_started(), &self.audio) {
+                // A scene without its own music keeps the previous one going (intro1 into intro2).
+                if let Some(prf) = crate::music::cutscene_music(scene) {
+                    let song = crate::music::load_song(&self.opts.data, prf);
+                    audio.play_music(song.map(|(s, bank)| crate::midi::stream(s, bank, true)));
+                }
+            }
             m.update(dt);
             if m.is_finished() {
                 let next = *next;

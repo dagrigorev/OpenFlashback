@@ -12,6 +12,7 @@
 - Cutscenes: polygon pictures and scripts, played in the letterbox; logos at startup, the intro
   before level 1, with captions and text in the game's font; the room foreground layer is drawn
   over Conrad.
+- Cutscene music: MIDI songs with their AdLib instruments through the FM synthesizer.
 
 ## Next
 
@@ -22,7 +23,7 @@
 4. Text (`fb_txt.fnt`, `.tbn`), inventory icons (`global.icn`).
 5. The in-game cutscenes (lifts, teleporters, ...), and the
    menus scripted with opcode 14.
-6. Sound effects and music (`.prf`, `.mid`, `.ins`).
+6. Sound effects (`global.fib`); music volume adjustments from the profiles.
 7. Comparison against the original running in DOSBox, as OpenBlood does.
 
 ## Known issues

@@ -38,6 +38,8 @@ but there are no level scripts, enemies or items yet.
   original's 240 x 128 letterbox. The publishers' logos play at startup, the intro (escape and
   crash on Titan) when a new game starts; any key skips. Captions and in-picture text use the
   game's own font (`fb_txt.fnt`) and texts (`fr_cine.txt`).
+- Music: the cutscenes' MIDI songs (`.mid`) play with their AdLib instruments (`.prf` profiles,
+  `.ins` instruments) through a clean-room FM synthesizer shared with OpenBlood.
 - Each level starts where the original does (level 1: Conrad waking up in the jungle). Conrad
   turns, walks, runs, jumps (standing and running), crouches, falls, climbs up onto ledges and
   down from them, with the original animations and the animation chains of the original script;
@@ -45,7 +47,7 @@ but there are no level scripts, enemies or items yet.
 
 Not yet: running the object scripts themselves (most of their condition and action opcodes are
 still unknown), enemies, items,
-shooting, text, sound and music. The game and cutscene speeds are estimates (30 updates and 12
+shooting, in-game text, sound effects. The game and cutscene speeds are estimates (30 updates and 12
 cutscene frames per second) until they are measured against the original.
 
 | | |
@@ -60,7 +62,7 @@ cutscene frames per second) until they are measured against the original.
    `openflashback.exe` (or pass `--data <dir>`), and `FB.EXE` too for Conrad's colours.
 2. Run `openflashback.exe` (fullscreen by default).
 
-Command line: `--windowed`, `--data <dir>`, `--level N` (1-5, skips the title), `--room N`.
+Command line: `--windowed`, `--nosound`, `--data <dir>`, `--level N` (1-5, skips the title), `--room N`.
 
 ## Controls
 
@@ -92,7 +94,7 @@ Crates: `of-engine` (data formats), `of-game` (game state), `openflashback` (win
 Developer tools (`openflashback <tool> ...`): `screen` (title/instruction picture to PNG), `rooms`
 (contact sheet of a level), `shot` (one room with Conrad), `sprites` (sprite bank sheet), `ct`
 (room connections), `film` (play scripted input and save a contact sheet of frames), `obj` (print
-an object's script transitions), `cutscene` (play a cutscene into a contact sheet).
+an object's script transitions), `cutscene` (play a cutscene into a contact sheet), `music` (render a song to a WAV file).
 
 ## Releases and CI
 

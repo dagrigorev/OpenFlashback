@@ -21,9 +21,13 @@ pub const HELP: &str = "  screen DATA NAME OUT.png        full-screen picture (m
      space-separated KEYS*TICKS, KEYS from l r u d s (run) or n (none): \"r*40 ru*1 n*30\"
        obj DATA LEVEL NODE [STATE]     print the script transitions of an object node (Conrad: 1)
        cutscene DATA NAME SUB EVERY OUT.png
-                                       play sub-script SUB of NAME.cmd / NAME.pol, keep every EVERY-th frame in a contact sheet";
+                                       play sub-script SUB of NAME.cmd / NAME.pol, keep every EVERY-th frame in a contact sheet
+  \n     music DATA PROFILE SECONDS OUT.wav
+                                  \n     render the song of PROFILE.prf (e.g. introl3) with its AdLib instruments";
 
-const TOOLS: [&str; 8] = ["screen", "rooms", "shot", "sprites", "ct", "film", "obj", "cutscene"];
+const TOOLS: [&str; 9] = [
+    "screen", "rooms", "shot", "sprites", "ct", "film", "obj", "cutscene", "music",
+];
 
 /// Parses `film` input such as `r*40 ru*1 n*30` into one [`Input`] per tick.
 fn parse_script(script: &str) -> Result<Vec<Input>, String> {
@@ -247,6 +251,35 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 }
             }
             write_rgb_png(arg(args, 5, "OUT")?, cols * SCREEN_W, rows * SCREEN_H, &sheet)
+        }
+        "music" => {
+            let prf = arg(args, 2, "PROFILE")?;
+            let secs: f64 = arg(args, 3, "SECONDS")?
+                .parse()
+                .map_err(|_| "SECONDS must be a number")?;
+            let (song, bank) = crate::music::load_song(&data, prf).ok_or(format!("{prf}.prf does not load"))?;
+            let rate = 44100u32;
+            let mut out = vec![0i16; (secs * rate as f64) as usize * 2];
+            crate::midi::Player::new(song, bank, rate as f64)
+                .with_channel_timbres()
+                .render(&mut out);
+            let path = arg(args, 4, "OUT")?;
+            let mut wav = Vec::with_capacity(44 + out.len() * 2);
+            let bytes = (out.len() * 2) as u32;
+            wav.extend_from_slice(b"RIFF");
+            wav.extend_from_slice(&(36 + bytes).to_le_bytes());
+            wav.extend_from_slice(b"WAVEfmt ");
+            for v in [16u32, 1 | 2 << 16, rate, rate * 4, 4 | 16 << 16] {
+                wav.extend_from_slice(&v.to_le_bytes());
+            }
+            wav.extend_from_slice(b"data");
+            wav.extend_from_slice(&bytes.to_le_bytes());
+            for v in out {
+                wav.extend_from_slice(&v.to_le_bytes());
+            }
+            std::fs::write(path, wav).map_err(|e| format!("{path}: {e}"))?;
+            println!("wrote {path} ({secs} s)");
+            Ok(())
         }
         other => Err(format!("unknown tool {other}")),
     }

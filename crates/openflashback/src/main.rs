@@ -1,7 +1,11 @@
 //! OpenFlashback: plays Flashback (1992) from the data files of your own copy.
 
 mod app;
+mod audio;
+mod fm;
+mod midi;
 mod movie;
+mod music;
 mod tools;
 
 use of_engine::DataDir;
@@ -15,6 +19,7 @@ pub struct Options {
     /// Level to start in directly (0-based), skipping the title screen.
     pub level: Option<usize>,
     pub room: Option<usize>,
+    pub sound: bool,
 }
 
 /// The data directory: `--data`, `OPENFLASHBACK_DATA`, or the executable's / working directory.
@@ -49,7 +54,7 @@ fn find_data(explicit: Option<PathBuf>) -> Result<DataDir, String> {
 
 fn usage() {
     eprintln!(
-        "usage: openflashback [--data DIR] [--windowed] [--level N] [--room N]\n\
+        "usage: openflashback [--data DIR] [--windowed] [--nosound] [--level N] [--room N]\n\
          tools: openflashback <tool> ...\n{}",
         tools::HELP
     );
@@ -71,11 +76,13 @@ fn main() -> ExitCode {
     let mut windowed = false;
     let mut level = None;
     let mut room = None;
+    let mut sound = true;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--data" => data = it.next().map(PathBuf::from),
             "--windowed" => windowed = true,
+            "--nosound" => sound = false,
             "--level" => {
                 level = it
                     .next()
@@ -106,6 +113,7 @@ fn main() -> ExitCode {
         windowed,
         level,
         room,
+        sound,
     }) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {

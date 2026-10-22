@@ -27,6 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Install Linux audio headers
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev pkg-config
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2

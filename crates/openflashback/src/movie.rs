@@ -18,7 +18,10 @@ pub const NEW_GAME: [(&str, usize); 2] = [("intro1", 0), ("intro2", 0)];
 
 /// A queue of cutscenes being played.
 pub struct Movie {
-    queue: VecDeque<Player>,
+    /// Each scene's name with its player.
+    queue: VecDeque<(String, Player)>,
+    /// A scene began since the last call to [`Movie::take_started`].
+    started: bool,
     /// Frames left to show the current picture.
     hold: u32,
     accum: Duration,
@@ -33,17 +36,27 @@ impl Movie {
                 let pol = Pol::parse(data.read(&format!("{name}.pol")).ok()?)?;
                 let cmd = Cmd::parse(data.read(&format!("{name}.cmd")).ok()?);
                 let player = Player::new(pol, cmd.ops(sub));
-                Some(match load_cutscene_text(data) {
+                let player = match load_cutscene_text(data) {
                     Some((font, texts)) => player.with_text(font, texts),
                     None => player,
-                })
+                };
+                Some((name.to_string(), player))
             })
             .collect();
         Movie {
             queue,
+            started: true,
             hold: 0,
             accum: Duration::ZERO,
         }
+    }
+
+    /// The name of the scene that began since the last call, if one did.
+    pub fn take_started(&mut self) -> Option<&str> {
+        if !std::mem::take(&mut self.started) {
+            return None;
+        }
+        self.queue.front().map(|(n, _)| n.as_str())
     }
 
     pub fn is_finished(&self) -> bool {
@@ -60,10 +73,11 @@ impl Movie {
                 self.hold -= 1;
                 continue;
             }
-            match self.queue.front_mut().and_then(|p| p.next_frame()) {
+            match self.queue.front_mut().and_then(|(_, p)| p.next_frame()) {
                 Some(n) => self.hold = n.saturating_sub(1),
                 None => {
                     self.queue.pop_front();
+                    self.started = true;
                 }
             }
         }
@@ -71,7 +85,7 @@ impl Movie {
 
     /// Copies the current picture and its palette.
     pub fn render(&self, screen: &mut Bitmap, palette: &mut Palette) {
-        if let Some(p) = self.queue.front() {
+        if let Some((_, p)) = self.queue.front() {
             screen.pixels.copy_from_slice(&p.screen.pixels);
             *palette = p.full_palette();
         }

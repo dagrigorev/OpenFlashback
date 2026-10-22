@@ -142,6 +142,23 @@ nibble first, values 15 (face), 8 and 2 (shading), 0 transparent. `fr_cine.txt` 
 per line (English in this copy, despite the name), `|` breaking it into lines; `fr_cine.bin` is
 the big-endian `u16` offset of each of its 117 texts.
 
+## Music: `NAME.prf`, `.mid`, `.ins`
+
+The songs are Standard MIDI Files (format 1). A 753-byte `.prf` profile goes with each: 16
+instrument names of 30 bytes, one per MIDI **track** (track 0 is the tempo track; songs often
+put every track on channel 0), little-endian `i16` transposes in semitones per track at offset
+480, `i16` volume adjustments at 512 (not used yet), and the song's file name at 550. Profiles of
+other sizes (`recharge.prf`) or without instruments (`opt.prf`) are for other sound drivers.
+
+An `.ins` file is the 80-byte AdLib instrument format: mode byte (0 melodic, 1 percussive),
+voice byte, 13 little-endian words for the modulator and 13 for the carrier (key-scale level,
+multiplier, feedback, attack, sustain level, sustaining envelope, decay, release, total level,
+tremolo, vibrato, key-scale rate, connection, where connection 1 is FM), then the modulator
+and carrier waveforms. The carrier's feedback and connection words are unused and hold junk.
+
+Which song plays with which cutscene is matched by name (`logos` with `present3`, `intro1`
+with `introl3`, `memo` with `memory3`, ...).
+
 ## Not decoded yet
 
-`.bnq`, the `.obj` condition and action opcodes beyond the controls, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*`, `.prf` / `.mid` / `.ins` audio, `fb_txt.fnt`.
+`.bnq`, the `.obj` condition and action opcodes beyond the controls, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*` (sound effects in `global.fib`), the `.prf` volume and remaining per-track values.

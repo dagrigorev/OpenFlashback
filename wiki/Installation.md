@@ -13,6 +13,7 @@ Command line:
 | --- | --- |
 | `--windowed` | start in a window (F11 toggles) |
 | `--data <dir>` | where the data files are |
+| `--nosound` | no music |
 | `--level N` | start in level 1-5, skipping the title screen |
 | `--room N` | start room (0-63) with `--level` |
 
