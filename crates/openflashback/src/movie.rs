@@ -2,6 +2,7 @@
 
 use of_engine::cutscene::{Cmd, Player, Pol};
 use of_engine::screen::Bitmap;
+use of_engine::text::load_cutscene_text;
 use of_engine::{DataDir, Palette};
 use std::collections::VecDeque;
 use std::time::Duration;
@@ -31,7 +32,11 @@ impl Movie {
             .filter_map(|&(name, sub)| {
                 let pol = Pol::parse(data.read(&format!("{name}.pol")).ok()?)?;
                 let cmd = Cmd::parse(data.read(&format!("{name}.cmd")).ok()?);
-                Some(Player::new(pol, cmd.ops(sub)))
+                let player = Player::new(pol, cmd.ops(sub));
+                Some(match load_cutscene_text(data) {
+                    Some((font, texts)) => player.with_text(font, texts),
+                    None => player,
+                })
             })
             .collect();
         Movie {

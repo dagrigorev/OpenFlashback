@@ -54,3 +54,33 @@ fn logos_show_the_publishers_names() {
         .any(|c| c.0 > 100 || c.1 > 100 || c.2 > 100);
     assert!(lit, "first logo frame palette is dark");
 }
+
+#[test]
+fn cutscene_texts_and_captions_are_read() {
+    use of_engine::cutscene::CAPTION_COLOURS;
+    use of_engine::text::load_cutscene_text;
+    let Some(data) = data() else { return };
+    let (font, texts) = load_cutscene_text(&data).unwrap();
+    assert_eq!(texts.len(), 117);
+    assert_eq!(texts.get(50).unwrap(), &["THE KIDNAPPING!".to_string()]);
+    assert!(texts.get(1).unwrap().len() > 1, "bars break texts into lines");
+
+    // The memory cutscene shows its first caption under the window.
+    let pol = Pol::parse(data.read("memo.pol").unwrap()).unwrap();
+    let cmd = Cmd::parse(data.read("memo.cmd").unwrap());
+    let mut player = Player::new(pol, cmd.ops(0)).with_text(font, texts);
+    let below = |p: &Player| {
+        p.screen.pixels[180 * 256..]
+            .iter()
+            .filter(|&&c| c == CAPTION_COLOURS[2])
+            .count()
+    };
+    let mut seen = false;
+    while player.next_frame().is_some() {
+        if below(&player) > 50 {
+            seen = true;
+            break;
+        }
+    }
+    assert!(seen, "no caption under the window");
+}

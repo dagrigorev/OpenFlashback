@@ -10,10 +10,14 @@
 
 use crate::palette::Rgb;
 use crate::screen::Bitmap;
+use crate::text::{Font, Texts};
 use crate::SCREEN_W;
 
 /// Palette entries used by cutscenes: two banks of 16 colours.
 pub const CUTSCENE_BASE: u8 = 0xc0;
+
+/// Palette entries of caption text: shadow, shading and face.
+pub const CAPTION_COLOURS: [u8; 3] = [0xe2, 0xe8, 0xef];
 
 /// The polygon pictures of a cutscene.
 #[derive(Debug, Clone)]
@@ -453,6 +457,8 @@ pub struct Player {
     pub palette: [[Rgb; 16]; 2],
     clip: Rect,
     ended: bool,
+    text: Option<(Font, Texts)>,
+    caption: Option<u16>,
 }
 
 impl Player {
@@ -470,7 +476,15 @@ impl Player {
             palette: [[Rgb::default(); 16]; 2],
             clip: WINDOW,
             ended: false,
+            text: None,
+            caption: None,
         }
+    }
+
+    /// Lets the script show captions and text, with the game font and the cutscene texts.
+    pub fn with_text(mut self, font: Font, texts: Texts) -> Player {
+        self.text = Some((font, texts));
+        self
     }
 
     /// Runs until the next frame is complete and composes it into `screen`; returns how many
@@ -538,10 +552,18 @@ impl Player {
                     self.palette[(bank & 1) as usize] = self.pol.palette(palette as usize);
                 }
                 Op::SaveBackground | Op::RefreshAll => {
+                    // Only the window: the caption under it is not part of the picture.
                     self.compose();
-                    self.background.pixels.copy_from_slice(&self.screen.pixels);
+                    let r = self.clip;
+                    for y in r.y..r.y + r.h {
+                        let row = y as usize * self.screen.w;
+                        let span = row + r.x as usize..row + (r.x + r.w) as usize;
+                        self.background.pixels[span.clone()].copy_from_slice(&self.screen.pixels[span]);
+                    }
                 }
-                Op::Caption(_) | Op::Text { .. } | Op::Nop => {}
+                Op::Caption(n) => self.caption = (n != 0xffff).then_some(n),
+                Op::Text { n, x, y } => self.draw_text(n, x, y),
+                Op::Nop => {}
                 Op::Keys => break,
             }
         }
@@ -551,7 +573,8 @@ impl Player {
         Some(hold)
     }
 
-    /// Puts the front layer over the background into `screen` and clears the front layer.
+    /// Puts the front layer over the background into `screen`, adds the caption under the
+    /// window and clears the front layer.
     fn compose(&mut self) {
         for ((d, &b), f) in self
             .screen
@@ -562,6 +585,35 @@ impl Player {
         {
             *d = if *f != 0 { *f } else { b };
             *f = 0;
+        }
+        if let (Some(n), Some((font, texts))) = (self.caption, &self.text) {
+            let lines = texts.get(n as usize).unwrap_or(&[]);
+            let top = self.clip.y + self.clip.h + 4;
+            for (i, line) in lines.iter().enumerate() {
+                // Centred under the window.
+                let x = self.clip.x + (self.clip.w - line.len() as i32 * 8) / 2;
+                let colour = |v: u8| match v {
+                    15 => Some(CAPTION_COLOURS[2]),
+                    8 => Some(CAPTION_COLOURS[1]),
+                    _ => Some(CAPTION_COLOURS[0]),
+                };
+                font.draw(&mut self.screen, line, x, top + i as i32 * 8, &colour);
+            }
+        }
+    }
+
+    /// Text `n` (its low 12 bits; the top 4 bits are the colour in palette bank 1) at character
+    /// cell (`x`, `y`) of the window, into the front layer.
+    fn draw_text(&mut self, n: u16, x: u8, y: u8) {
+        let Some((font, texts)) = &self.text else { return };
+        if n == 0xffff {
+            return;
+        }
+        let face = CUTSCENE_BASE + 16 + (n >> 12) as u8;
+        let lines = texts.get((n & 0xfff) as usize).unwrap_or(&[]);
+        for (i, line) in lines.iter().enumerate() {
+            let (px, py) = (self.clip.x + x as i32 * 8, self.clip.y + (y as i32 + i as i32) * 8);
+            font.draw(&mut self.front, line, px, py, &|v| (v != 2).then_some(face));
         }
     }
 
@@ -586,6 +638,9 @@ impl Player {
         let mut p = crate::Palette::default();
         p.set_slot(CUTSCENE_BASE as usize, &self.palette[0]);
         p.set_slot(CUTSCENE_BASE as usize + 16, &self.palette[1]);
+        p.0[CAPTION_COLOURS[0] as usize] = Rgb(17, 17, 17);
+        p.0[CAPTION_COLOURS[1] as usize] = Rgb(136, 136, 136);
+        p.0[CAPTION_COLOURS[2] as usize] = Rgb(238, 238, 238);
         p
     }
 }

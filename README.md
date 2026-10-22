@@ -36,13 +36,14 @@ but there are no level scripts, enemies or items yet.
   Conrad's colours are read from your `FB.EXE`.
 - Cutscenes: the polygon pictures (`.pol`) and their scripts (`.cmd`) are played in the
   original's 240 x 128 letterbox. The publishers' logos play at startup, the intro (escape and
-  crash on Titan) when a new game starts; any key skips.
+  crash on Titan) when a new game starts; any key skips. Captions and in-picture text use the
+  game's own font (`fb_txt.fnt`) and texts (`fr_cine.txt`).
 - Each level starts where the original does (level 1: Conrad waking up in the jungle). Conrad
   turns, walks, runs, jumps (standing and running), crouches, falls, climbs up onto ledges and
   down from them, with the original animations and the animation chains of the original script;
   every move covers whole 16-pixel cells of the room grid.
 
-Not yet: cutscene captions and text, running the object scripts themselves (most of their condition and action opcodes are
+Not yet: running the object scripts themselves (most of their condition and action opcodes are
 still unknown), enemies, items,
 shooting, text, sound and music. The game and cutscene speeds are estimates (30 updates and 12
 cutscene frames per second) until they are measured against the original.

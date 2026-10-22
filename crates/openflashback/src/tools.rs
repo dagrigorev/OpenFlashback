@@ -224,6 +224,9 @@ pub fn run(args: &[String]) -> Result<(), String> {
             let pol = Pol::parse(read(&format!("{name}.pol"))?).ok_or(format!("{name}.pol is too short"))?;
             let cmd = Cmd::parse(read(&format!("{name}.cmd"))?);
             let mut player = Player::new(pol, cmd.ops(sub));
+            if let Some((font, texts)) = of_engine::text::load_cutscene_text(&data) {
+                player = player.with_text(font, texts);
+            }
             let mut frames: Vec<Vec<Rgb>> = Vec::new();
             let mut n = 0usize;
             while let Some(hold) = player.next_frame() {

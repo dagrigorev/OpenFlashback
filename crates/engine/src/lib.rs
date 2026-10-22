@@ -11,6 +11,7 @@ pub mod palette;
 pub mod pge;
 pub mod screen;
 pub mod sprite;
+pub mod text;
 pub mod unpack;
 
 /// Width of the game screen in pixels.

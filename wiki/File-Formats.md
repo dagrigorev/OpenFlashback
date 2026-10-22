@@ -121,19 +121,27 @@ opcode times 4 (a byte of `0x80` or more ends the script) and its arguments:
 | 2 | byte n | hold the frame for n more frames |
 | 3 | `u16` shape (bit 15: `i16` x, y follow) | draw a shape |
 | 4 | byte palette, byte bank | load a `.pol` palette into bank 0 or 1 |
-| 6 | `u16` | caption text number |
+| 6 | `u16` | caption: text number shown under the window until replaced (`0xffff` clears) |
 | 7 | - | nothing |
 | 8 | 3 bytes | skipped |
 | 9 | - | keep the current picture as the background |
 | 10 | `u16` shape (bit 15: x, y), `i16` zoom (+512 = 1:1), byte origin x, y | scaled shape |
 | 11 | `u16` shape (bit 15: x, y; 14: zoom; 13, 12: extra angles), byte origin x, y, `u16` angle | rotated shape |
 | 12 | - | keep the current picture as the background |
-| 13 | `u16` text (unless `0xffff`: byte x, y) | text at a position |
+| 13 | `u16` text (unless `0xffff`: byte x, y) | text drawn into the front layer at character cell x, y of the window; low 12 bits text number, top 4 bits colour in bank 1 |
 | 14 | ... | interactive menu keys (playback stops) |
 
 All 62 scripts of the DOS version parse with these sizes. Unknown: the meaning of the two extra
-rotation angles, the exact frame rate (12 frames per second is a guess), captions.
+rotation angles, the exact frame rate (12 frames per second is a guess), the caption colours
+and placement (centred under the window here).
+
+## Font and texts: `fb_txt.fnt`, `fr_cine.txt`, `fr_cine.bin`
+
+The font is 8 x 8 glyphs from the space character on, 32 bytes each: 4 bits per pixel, high
+nibble first, values 15 (face), 8 and 2 (shading), 0 transparent. `fr_cine.txt` holds one text
+per line (English in this copy, despite the name), `|` breaking it into lines; `fr_cine.bin` is
+the big-endian `u16` offset of each of its 117 texts.
 
 ## Not decoded yet
 
-`.bnq`, the `.obj` condition and action opcodes beyond the controls, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*`, `fr_cine.txt` cutscene captions, `.prf` / `.mid` / `.ins` audio, `fb_txt.fnt`.
+`.bnq`, the `.obj` condition and action opcodes beyond the controls, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*`, `.prf` / `.mid` / `.ins` audio, `fb_txt.fnt`.
