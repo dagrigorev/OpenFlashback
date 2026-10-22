@@ -9,6 +9,8 @@
   falling and climbing on the room collision grid.
 - Object script reader (`.obj`) and dump tool; Conrad's moves follow the script's animation
   chains and controls (checked by a test against the original data).
+- Cutscenes: polygon pictures and scripts, played in the letterbox; logos at startup, the intro
+  before level 1; the room foreground layer is drawn over Conrad.
 
 ## Next
 
@@ -17,7 +19,8 @@
    doors, lifts, enemies (`.pge`, `.obj`, `.lev`).
 3. Enemy sprite banks (`junky`, `mercenai`, `replican`, `glue`).
 4. Text (`fb_txt.fnt`, `.tbn`), inventory icons (`global.icn`).
-5. Cutscenes (`.cmd` / `.pol` polygon animations).
+5. Cutscene captions (`fr_cine.txt`), the in-game cutscenes (lifts, teleporters, ...), and the
+   menus scripted with opcode 14.
 6. Sound effects and music (`.prf`, `.mid`, `.ins`).
 7. Comparison against the original running in DOSBox, as OpenBlood does.
 
@@ -26,6 +29,6 @@
 - Conrad's moves come from a hand-written state machine that follows the script's chains, not
   from running the script; no rolling, drawing the gun, using objects or lifts.
 - Dropping from a ledge cuts from hanging to landing instead of falling.
-- The room foreground layer (pixels with bit 7) is drawn under Conrad instead of over him.
+- Cutscene frame rate (12 per second) and rotation (two of three angles ignored) are guesses.
 - Conrad's palette is the fifth of seven palettes in `FB.EXE`; not yet checked against a
   capture of the original.

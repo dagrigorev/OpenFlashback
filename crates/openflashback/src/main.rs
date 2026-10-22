@@ -1,6 +1,7 @@
 //! OpenFlashback: plays Flashback (1992) from the data files of your own copy.
 
 mod app;
+mod movie;
 mod tools;
 
 use of_engine::DataDir;

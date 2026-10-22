@@ -1,5 +1,6 @@
 //! Developer tools: render the original data to PNG files for inspection and comparison.
 
+use of_engine::cutscene::{Cmd, Player, Pol};
 use of_engine::level::{ConnectionTable, Dir, LevelMap, LEVEL_FILES, SCRIPT_FILES};
 use of_engine::obj::{input_condition, ObjectScripts};
 use of_engine::palette::LevelPalettes;
@@ -18,9 +19,11 @@ pub const HELP: &str = "  screen DATA NAME OUT.png        full-screen picture (m
      film DATA LEVEL INPUT EVERY OUT.png\n                                  \
      play scripted input, keep every EVERY-th tick in a contact sheet. INPUT is\n                                  \
      space-separated KEYS*TICKS, KEYS from l r u d s (run) or n (none): \"r*40 ru*1 n*30\"
-       obj DATA LEVEL NODE [STATE]     print the script transitions of an object node (Conrad: 1)";
+       obj DATA LEVEL NODE [STATE]     print the script transitions of an object node (Conrad: 1)
+       cutscene DATA NAME SUB EVERY OUT.png
+                                       play sub-script SUB of NAME.cmd / NAME.pol, keep every EVERY-th frame in a contact sheet";
 
-const TOOLS: [&str; 7] = ["screen", "rooms", "shot", "sprites", "ct", "film", "obj"];
+const TOOLS: [&str; 8] = ["screen", "rooms", "shot", "sprites", "ct", "film", "obj", "cutscene"];
 
 /// Parses `film` input such as `r*40 ru*1 n*30` into one [`Input`] per tick.
 fn parse_script(script: &str) -> Result<Vec<Input>, String> {
@@ -213,6 +216,34 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 );
             }
             Ok(())
+        }
+        "cutscene" => {
+            let name = arg(args, 2, "NAME")?;
+            let sub: usize = arg(args, 3, "SUB")?.parse().map_err(|_| "SUB must be a number")?;
+            let every: usize = arg(args, 4, "EVERY")?.parse().map_err(|_| "EVERY must be a number")?;
+            let pol = Pol::parse(read(&format!("{name}.pol"))?).ok_or(format!("{name}.pol is too short"))?;
+            let cmd = Cmd::parse(read(&format!("{name}.cmd"))?);
+            let mut player = Player::new(pol, cmd.ops(sub));
+            let mut frames: Vec<Vec<Rgb>> = Vec::new();
+            let mut n = 0usize;
+            while let Some(hold) = player.next_frame() {
+                if n.is_multiple_of(every.max(1)) {
+                    let pal = player.full_palette();
+                    frames.push(player.screen.pixels.iter().map(|&c| pal.0[c as usize]).collect());
+                }
+                n += hold as usize;
+            }
+            println!("{name}.cmd sub-script {sub} of {}: {n} frames", cmd.len());
+            let cols = 6;
+            let rows = frames.len().div_ceil(cols).max(1);
+            let mut sheet = vec![Rgb::default(); cols * SCREEN_W * rows * SCREEN_H];
+            for (k, f) in frames.iter().enumerate() {
+                let (ox, oy) = ((k % cols) * SCREEN_W, (k / cols) * SCREEN_H);
+                for (i, &c) in f.iter().enumerate() {
+                    sheet[(oy + i / SCREEN_W) * cols * SCREEN_W + ox + i % SCREEN_W] = c;
+                }
+            }
+            write_rgb_png(arg(args, 5, "OUT")?, cols * SCREEN_W, rows * SCREEN_H, &sheet)
         }
         other => Err(format!("unknown tool {other}")),
     }

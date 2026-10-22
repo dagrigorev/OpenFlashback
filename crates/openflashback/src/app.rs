@@ -1,5 +1,7 @@
-//! The game window: title screen, play, and scaling the 256 x 224 screen to the window.
+//! The game window: startup cutscenes, title screen, play, and scaling the 256 x 224 screen to
+//! the window.
 
+use crate::movie::{Movie, NEW_GAME, STARTUP};
 use crate::Options;
 use of_engine::screen::{decode_planar_screen, Bitmap};
 use of_engine::{Palette, SCREEN_H, SCREEN_W};
@@ -18,6 +20,8 @@ use winit::window::{Fullscreen, Window, WindowId};
 const ASPECT: f64 = 4.0 / 3.0;
 
 enum Mode {
+    /// Cutscenes, then the level to start (or the title screen).
+    Cutscene(Movie, Option<usize>),
     Title,
     Play(Box<Game>),
 }
@@ -40,7 +44,7 @@ struct App {
 pub fn run(opts: Options) -> Result<(), String> {
     let title = load_title(&opts).map_err(|e| e.to_string())?;
     let mut app = App {
-        mode: Mode::Title,
+        mode: Mode::Cutscene(Movie::load(&opts.data, &STARTUP), None),
         title,
         screen: Bitmap::screen(),
         palette: Palette::default(),
@@ -79,6 +83,13 @@ impl App {
         }
     }
 
+    fn after_cutscene(&mut self, next: Option<usize>) {
+        match next {
+            Some(level) => self.start(level),
+            None => self.mode = Mode::Title,
+        }
+    }
+
     fn input(&self) -> Input {
         let k = |a: KeyCode, b: KeyCode| self.keys.contains(&a) || self.keys.contains(&b);
         Input {
@@ -91,13 +102,22 @@ impl App {
     }
 
     fn key_pressed(&mut self, el: &ActiveEventLoop, code: KeyCode) {
+        if let Mode::Cutscene(_, next) = self.mode {
+            // Any key skips the cutscenes.
+            if code != KeyCode::F11 {
+                self.after_cutscene(next);
+                return;
+            }
+        }
         match code {
             KeyCode::F11 => self.toggle_fullscreen(),
             KeyCode::Escape => match self.mode {
                 Mode::Title => el.exit(),
-                Mode::Play(_) => self.mode = Mode::Title,
+                _ => self.mode = Mode::Title,
             },
-            KeyCode::Enter | KeyCode::Space if matches!(self.mode, Mode::Title) => self.start(0),
+            KeyCode::Enter | KeyCode::Space if matches!(self.mode, Mode::Title) => {
+                self.mode = Mode::Cutscene(Movie::load(&self.opts.data, &NEW_GAME), Some(0));
+            }
             KeyCode::Digit1 | KeyCode::Digit2 | KeyCode::Digit3 | KeyCode::Digit4 | KeyCode::Digit5 => {
                 let n = code as usize - KeyCode::Digit1 as usize;
                 self.start(n);
@@ -133,8 +153,16 @@ impl App {
 
     fn update(&mut self) {
         let now = Instant::now();
-        self.accum += now - self.last;
+        let dt = now - self.last;
+        self.accum += dt;
         self.last = now;
+        if let Mode::Cutscene(m, next) = &mut self.mode {
+            m.update(dt);
+            if m.is_finished() {
+                let next = *next;
+                self.after_cutscene(next);
+            }
+        }
         let step = Duration::from_secs(1) / TICK_HZ;
         // Never try to catch up more than a quarter second after a stall.
         self.accum = self.accum.min(Duration::from_millis(250));
@@ -146,6 +174,7 @@ impl App {
             }
         }
         match &mut self.mode {
+            Mode::Cutscene(m, _) => m.render(&mut self.screen, &mut self.palette),
             Mode::Title => {
                 self.screen.pixels.copy_from_slice(&self.title.0.pixels);
                 self.palette = self.title.1.clone();

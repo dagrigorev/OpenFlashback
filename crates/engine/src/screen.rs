@@ -28,6 +28,12 @@ impl Bitmap {
     /// Draws `src` with its top-left corner at (`x`, `y`), skipping colour 0, adding `base` to every
     /// colour and mirroring horizontally when `flip` is set. Parts outside the image are clipped.
     pub fn blit(&mut self, src: &Bitmap, x: i32, y: i32, base: u8, flip: bool) {
+        self.blit_masked(src, x, y, base, flip, 0);
+    }
+
+    /// Like [`Bitmap::blit`], but leaves pixels of this image that have any bit of `mask` set:
+    /// with `0x80`, a sprite passes behind a room's foreground layer.
+    pub fn blit_masked(&mut self, src: &Bitmap, x: i32, y: i32, base: u8, flip: bool, mask: u8) {
         for sy in 0..src.h {
             let dy = y + sy as i32;
             if dy < 0 || dy >= self.h as i32 {
@@ -44,7 +50,10 @@ impl Bitmap {
                     x + sx as i32
                 };
                 if dx >= 0 && dx < self.w as i32 {
-                    self.pixels[dy as usize * self.w + dx as usize] = c.wrapping_add(base);
+                    let d = &mut self.pixels[dy as usize * self.w + dx as usize];
+                    if *d & mask == 0 {
+                        *d = c.wrapping_add(base);
+                    }
                 }
             }
         }
@@ -89,5 +98,21 @@ mod tests {
         };
         dst.blit(&src, 2, 0, 0x40, true);
         assert_eq!(dst.pixels, vec![0, 0, 0x42, 0]);
+    }
+
+    #[test]
+    fn masked_blit_stays_behind_foreground_pixels() {
+        let mut dst = Bitmap {
+            w: 3,
+            h: 1,
+            pixels: vec![0x01, 0x85, 0x02],
+        };
+        let src = Bitmap {
+            w: 3,
+            h: 1,
+            pixels: vec![7, 7, 7],
+        };
+        dst.blit_masked(&src, 0, 0, 0x40, false, 0x80);
+        assert_eq!(dst.pixels, vec![0x47, 0x85, 0x47]);
     }
 }

@@ -2,7 +2,8 @@
 
 | Action | Keys |
 | --- | --- |
-| Start (title screen) | Enter / Space |
+| Skip a cutscene | any key |
+| Start a new game (title screen; plays the intro, then level 1) | Enter / Space |
 | Walk (turn first when facing away) | Left / Right (A / D) |
 | Run | Shift + Left / Right |
 | Jump forward (running jump when running) | Up + Left / Right |

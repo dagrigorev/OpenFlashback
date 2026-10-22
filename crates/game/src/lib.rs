@@ -147,7 +147,8 @@ impl Game {
         if let Some((id, mirror)) = c.sprite() {
             if let Some(s) = self.perso.frame(id) {
                 let (x, y) = s.origin(c.x, c.y, mirror);
-                screen.blit(&s.bitmap, x, y, CONRAD_BASE, mirror);
+                // Room pixels of the foreground layer (bit 7) stay in front of Conrad.
+                screen.blit_masked(&s.bitmap, x, y, CONRAD_BASE, mirror, 0x80);
             }
         }
     }

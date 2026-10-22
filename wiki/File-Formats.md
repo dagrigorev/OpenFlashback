@@ -97,7 +97,43 @@ Shift climbs down (15, then 91 one floor lower), walking alternates 3 and 2 on f
 other condition opcodes (about 60, many with an expected value in the arguments, apparently grid
 and object tests) and the action opcodes are not decoded yet.
 
+## Cutscene pictures: `NAME.pol`
+
+Big-endian. Five `u32` offsets: shape offset table, palettes, vertex offset table, shape data,
+vertex data. Palettes are 16 `0RGB` words each. A shape (`u16` offset from the table, into the
+shape data) is a `u16` primitive count, then per primitive a `u16` vertex-set number (bit 15:
+an `i16` x and y offset follow; low 14 bits index the vertex offset table) and a colour byte. A
+vertex set starts with a count byte `n`: bit 7 set is an ellipse (`i16` centre x, y, radius x,
+y), 0 is a point (`i16` x, y), otherwise a polygon: `i16` x, y of the first point and `n` pairs of
+signed byte steps to the next. Coordinates are relative to the 240 x 128 cutscene window, which
+OpenFlashback centres at (8, 50).
+
+## Cutscene scripts: `NAME.cmd`
+
+Big-endian. A `u16` count of sub-scripts and their `u16` offsets (counted from the end of that
+table; count 0 means one script right after it), then byte code: an opcode byte equal to the
+opcode times 4 (a byte of `0x80` or more ends the script) and its arguments:
+
+| Opcode | Arguments | Meaning |
+| --- | --- | --- |
+| 0, 5 | - | show the frame drawn so far |
+| 1 | byte mode | 0: draw into the front layer (palette bank 1, cleared after every frame); otherwise draw into the background (bank 0), which is cleared |
+| 2 | byte n | hold the frame for n more frames |
+| 3 | `u16` shape (bit 15: `i16` x, y follow) | draw a shape |
+| 4 | byte palette, byte bank | load a `.pol` palette into bank 0 or 1 |
+| 6 | `u16` | caption text number |
+| 7 | - | nothing |
+| 8 | 3 bytes | skipped |
+| 9 | - | keep the current picture as the background |
+| 10 | `u16` shape (bit 15: x, y), `i16` zoom (+512 = 1:1), byte origin x, y | scaled shape |
+| 11 | `u16` shape (bit 15: x, y; 14: zoom; 13, 12: extra angles), byte origin x, y, `u16` angle | rotated shape |
+| 12 | - | keep the current picture as the background |
+| 13 | `u16` text (unless `0xffff`: byte x, y) | text at a position |
+| 14 | ... | interactive menu keys (playback stops) |
+
+All 62 scripts of the DOS version parse with these sizes. Unknown: the meaning of the two extra
+rotation angles, the exact frame rate (12 frames per second is a guess), captions.
+
 ## Not decoded yet
 
-`.bnq`, the `.obj` condition and action opcodes beyond the controls, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*`, `.cmd` / `.pol`
-cutscenes, `.prf` / `.mid` / `.ins` audio, `fb_txt.fnt`.
+`.bnq`, the `.obj` condition and action opcodes beyond the controls, the rest of `.pge`, `.lev`, `.mbk`, `.sgd`, `.rp`, `.tbn`, `global.*`, `fr_cine.txt` cutscene captions, `.prf` / `.mid` / `.ins` audio, `fb_txt.fnt`.
