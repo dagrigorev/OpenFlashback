@@ -1,0 +1,14 @@
+[package]
+name = "openflashback"
+description = "OpenFlashback frontend: window, input, tools"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+of-engine = { path = "../engine" }
+of-game = { path = "../game" }
+png = "0.17"
+winit = "0.30"
+softbuffer = "0.4"

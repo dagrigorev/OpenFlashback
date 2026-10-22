@@ -1,0 +1,10 @@
+[package]
+name = "of-game"
+description = "Flashback game logic for OpenFlashback"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+of-engine = { path = "../engine" }

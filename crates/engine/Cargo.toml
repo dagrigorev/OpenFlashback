@@ -1,0 +1,9 @@
+[package]
+name = "of-engine"
+description = "Clean-room Flashback (1992) data readers for OpenFlashback"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]

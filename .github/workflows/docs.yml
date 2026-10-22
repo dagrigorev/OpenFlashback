@@ -1,0 +1,102 @@
+# Publishes the API documentation (rustdoc) to GitHub Pages and mirrors the
+# wiki/ folder into the GitHub wiki whenever master changes.
+name: Docs and wiki
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "crates/**"
+      - "wiki/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/scripts/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rustdoc:
+    name: Build API docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: docs
+
+      - name: cargo doc
+        run: cargo doc --workspace --no-deps --document-private-items --locked
+
+      - name: Landing page
+        run: |
+          cat > target/doc/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>OpenFlashback API docs</title>
+            <style>
+              body { font: 16px/1.5 system-ui, sans-serif; max-width: 42rem; margin: 3rem auto; padding: 0 1rem; background: #111; color: #ddd; }
+              a { color: #4fa3e0; } h1 { color: #fff; } li { margin: .5rem 0; }
+            </style>
+          </head>
+          <body>
+            <h1>OpenFlashback API documentation</h1>
+            <p>Generated from the source on every push to <code>master</code>.</p>
+            <ul>
+              <li><a href="of_engine/index.html">of_engine</a> &mdash; data formats: pictures, level rooms, room connections, sprites, bytekiller unpacking</li>
+              <li><a href="of_game/index.html">of_game</a> &mdash; Flashback game state: levels, Conrad, screen composition</li>
+              <li><a href="openflashback/index.html">openflashback</a> &mdash; executable: window, input, scaling, developer tools</li>
+            </ul>
+            <p><a href="https://github.com/dagrigorev/OpenFlashback/wiki">Wiki</a> &middot; <a href="https://github.com/dagrigorev/OpenFlashback">Repository</a></p>
+          </body>
+          </html>
+          EOF
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/doc
+
+  deploy-docs:
+    name: Deploy API docs
+    needs: rustdoc
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  wiki:
+    name: Sync wiki
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: wiki
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Sync wiki
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/sync-wiki.sh wiki

@@ -1,0 +1,1 @@
+OpenFlashback is MIT licensed and contains no Flashback game content. Flashback is © 1992 Delphine Software International. This wiki is generated from the [`wiki/` folder](https://github.com/dagrigorev/OpenFlashback/tree/master/wiki); edit it there.
